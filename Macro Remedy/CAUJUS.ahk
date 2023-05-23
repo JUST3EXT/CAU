@@ -57,8 +57,8 @@ Return
 
 #3::
     screen()
-    pass:= ""
-    progra:= ""
+    pass:= 
+    progra:= 
     tlf()
     Sleep, 1000
     password()
