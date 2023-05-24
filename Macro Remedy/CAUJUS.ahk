@@ -5,13 +5,12 @@ SetWorkingDir, %A_ScriptDir%
 Esc::Reload
 Return
 
-pass:= ""
-progra:=""
 
 screen()
 {
     WinActivate, ahk_exe aruser.exe
     WinWaitActive, ahk_exe aruser.exe
+    Return
 }
 
 tlf()
@@ -27,22 +26,30 @@ tlf()
         Send, {TAB 4}
         Send, %phone%
     }
+    Return
 }
-
 
 password()
 {
+    pass:= ""
     InputBox, pass, Password, (Nueva password)
+    Send, {TAB 36}%pass%
+    Return
 }
 
 app()
 {
+    progra:= "" 
     InputBox, progra, Programa, (Programa al que vas a cambiar pass)
+    Send, {TAB 25}{Right}{TAB 2}GESTION USUARIOS{TAB}
+    Send, %progra%
+    Return
 }
 
 #1::
     Run, PowerShell.exe -ExecutionPolicy Bypass -File "C:\Users\CAU.LAP\AppData\Roaming\AR System\HOME\ARCmds\Alba.ps1",, Hide
     WinActivate, [ BMC Remedy User - [Página de inicio (Buscar)]]
+    Run, PowerShell.exe -ExecutionPolicy Bypass -File "C:\Users\CAU.LAP\AppData\Roaming\AR System\HOME\ARCmds\Alba.ps1",, Hide
     Send, ^i 
     Send, {TAB 2}{End}{Enter}
 Return
@@ -57,15 +64,10 @@ Return
 
 #3::
     screen()
-    pass:= 
-    progra:= 
     tlf()
-    Sleep, 1000
     password()
     app()
-    Send, {TAB 36} %pass%
-    Send, {TAB 25}{Right}{TAB 2}GESTION USUARIOS{TAB}
-    Send, %progra%. Usuario no recuerda su contrase{U+00F1}a{TAB}CONTRASE{ASC 165}AS{TAB 2}Se cambia contrase{U+00F1}a del usuario{TAB 2}-
+    Send, .Usuario no recuerda su contrase{U+00F1}a{TAB}CONTRASE{ASC 165}AS{TAB 2}Se cambia contrase{U+00F1}a del usuario{TAB 2}-
     Send, ^{enter}{Enter}
     Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
     Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}
@@ -74,17 +76,15 @@ Return
 Return
 
 #4::
+    pass := ""
+    progra := "" 
     tlf()
+    MsgBox, Antes de tlf(). Valor de pass: %pass%, Valor de progra: %progra%
     Sleep, 1000
     password()
-    Send, {TAB 36} %pass%
-    Send, {TAB 25}{Right}{TAB 2}GESTION USUARIOS{TAB}
-    Send, Correo. Usuario no recuerda su contrase{U+00F1}a{TAB}CONTRASE{ASC 165}AS{TAB 2}Se cambia contrase{U+00F1}a del usuario{TAB 2}-
-    Send, ^{enter}{Enter}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}
-    Send, Se modifica la contrase{U+00F1}a campo Remedy
-    Send, {Tab}{Enter}
+    MsgBox, Antes de password(). Valor de pass: %pass%
+    app()
+    MsgBox, Antes de app(). Valor de progra: %progra%
 Return
 
 #5::
@@ -103,3 +103,11 @@ Return
     Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
     Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}Se realiza batería de pruebas y funciona correctamente. Se cierra ticket.{Tab}{Enter}
 Return
+
+; XButton1::
+; MsgBox, Has pulsado el botón X1 del ratón.
+; Return
+
+; XButton2::
+; MsgBox, Has pulsado el botón X2 del ratón.
+; Return
