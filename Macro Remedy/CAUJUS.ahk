@@ -10,6 +10,7 @@ screen()
 {
     WinActivate, ahk_exe aruser.exe
     WinWaitActive, ahk_exe aruser.exe
+    SetTitleMatchMode, 2
     Return
 }
 
@@ -49,7 +50,6 @@ app()
 #1::
     Run, PowerShell.exe -ExecutionPolicy Bypass -File "C:\Users\CAU.LAP\AppData\Roaming\AR System\HOME\ARCmds\Alba.ps1",, Hide
     WinActivate, [ BMC Remedy User - [Página de inicio (Buscar)]]
-    Run, PowerShell.exe -ExecutionPolicy Bypass -File "C:\Users\CAU.LAP\AppData\Roaming\AR System\HOME\ARCmds\Alba.ps1",, Hide
     Send, ^i 
     Send, {TAB 2}{End}{Enter}
 Return
