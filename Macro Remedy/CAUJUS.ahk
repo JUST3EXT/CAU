@@ -90,8 +90,11 @@ Return
     Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}Se recibe llamada relacionada con problemas con el equipo. Se solventa y se cierra ticket.{Tab}{Enter}
 Return
 
-
-
+XButton2::
+SetTitleMatchMode, 2
+WinActivate, ahk_class ArFrame
+Send, #+s
+Return
 
 
 ; XButton1::
