@@ -42,6 +42,11 @@ password()
     Return
 }
 
+cierre(closetext)
+{
+    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
+    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}closetext{Tab}{Enter}
+}
 
 
 #1::
@@ -56,38 +61,33 @@ Return
     tlf()
     screen()
     Send, {TAB 23}{Right}{TAB 2}NUEVO ADRIANO{TAB}Se recibe llamada relacionada con {@}driano. Se comprueba que no esta relacionado con puesto de trabajo. Se realiza transfer de llamada para su gestion.{TAB 6}{Down}{TAB 34}NUEVO ADRIANO{TAB 3}Se realiza transfer de llamada a CA {@}driano para su gesti{ó}n. Se cierra ticket.^{enter}{Enter}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}Se recibe llamada relacionada con {@}driano. Se comprueba que no esta relacionado con puesto de trabajo. Se realiza transfer de llamada para su gestion. Se cierra ticket.{Tab}{Enter}
+    cierre("Se recibe llamada relacionada con {@}driano. Se comprueba que no esta relacionado con puesto de trabajo. Se realiza transfer de llamada para su gestion. Se cierra ticket.")
 Return
 
 #3::
     tlf()
     password()
     Send {Tab 25}{Right}{Tab 9}{Down 2}{Tab 34}GESTION USUARIOS{Tab}AD - Usuario no recuerda su contrase{U+00F1}a{Tab}CONTRASE{ASC 165}AS{Tab 2}Se cambia contrase{U+00F1}a del usuario{TAB 2}-^{enter}{Enter}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}Se cambia contrase{U+00F1}a de AD.{Tab}{Enter}
+    cierre("Se cambia contrase{U+00F1}a de AD.")
 Return
 
 #4::
     tlf()
     password()
     Send {Tab 25}{Right}{Tab 9}{Down 2}{Tab 34}GESTION USUARIOS{Tab}Correo - Usuario no recuerda su contrase{U+00F1}a{Tab}CONTRASE{ASC 165}AS{Tab 2}Se cambia contrase{U+00F1}a del usuario{TAB 2}-^{enter}{Enter}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}Se cambia contrase{U+00F1}a de correo.{Tab}{Enter}
+    cierre("Se cambia contrase{U+00F1}a de correo.")
 Return
 
 #5::
     tlf()
     Send, {TAB 23}{Right}{TAB 2}COMUNICACIONES{TAB}Se recibe llamada relacionada con servicio no relacionado con el CIUS. Se comprueba que no esta relacionado con puesto de trabajo. Se comunica n{ú}mero del servicio correspondiente{TAB 6}{Down}{TAB 34}COMUNICACIONES{TAB 3}Se recibe llamada relacionada con servicio no relacionado con el CIUS. Se comprueba que no esta relacionado con puesto de trabajo. Se comunica n{ú}mero del servicio correspondiente^{enter}{Enter}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}Se recibe llamada relacionada con servicio no relacionado con el CIUS. Se comprueba que no esta relacionado con puesto de trabajo. Se comunica n{ú}mero del servicio correspondiente. Se cierra ticket.{Tab}{Enter}
+    cierre("Se recibe llamada relacionada con servicio no relacionado con el CIUS. Se comprueba que no esta relacionado con puesto de trabajo. Se comunica n{ú}mero del servicio correspondiente. Se cierra ticket.")
 Return
 
 #6::
     tlf()
     Send, {TAB 23}{Right}{TAB 2}COMUNICACIONES{TAB}Se recibe llamada relacionada con problemas con el equipo{TAB 6}{Down}{TAB 34}COMUNICACIONES{TAB 3}Se recibe llamada relacionada con problemas con el equipo^{enter}{Enter}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 5}{Enter 3}
-    Send, !a {Down 9}{Right}{Enter}{TAB 12}{Right 2}{TAB 6}{Enter}Se recibe llamada relacionada con problemas con el equipo. Se solventa y se cierra ticket.{Tab}{Enter}
+    cierre(Se recibe llamada relacionada con problemas con el equipo. Se solventa y se cierra ticket.)
 Return
 
 XButton2::
