@@ -95,12 +95,3 @@ SetTitleMatchMode, 2
 WinActivate, ahk_class ArFrame
 Send, #+s
 Return
-
-
-; XButton1::
-; MsgBox, Has pulsado el botón X1 del ratón.
-; Return
-
-; XButton2::
-; MsgBox, Has pulsado el botón X2 del ratón.
-; Return
