@@ -87,7 +87,7 @@ Return
 #6::
     tlf()
     Send, {TAB 23}{Right}{TAB 2}COMUNICACIONES{TAB}Se recibe llamada relacionada con problemas con el equipo{TAB 6}{Down}{TAB 34}COMUNICACIONES{TAB 3}Se recibe llamada relacionada con problemas con el equipo^{enter}{Enter}
-    cierre(Se recibe llamada relacionada con problemas con el equipo. Se solventa y se cierra ticket.)
+    cierre("Se recibe llamada relacionada con problemas con el equipo. Se solventa y se cierra ticket.")
 Return
 
 XButton2::
