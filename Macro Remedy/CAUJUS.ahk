@@ -5,7 +5,6 @@ SetWorkingDir, %A_ScriptDir%
 Esc::Reload
 Return
 
-
 screen()
 {
     SetTitleMatchMode, 2
