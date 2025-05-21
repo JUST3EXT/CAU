@@ -16,31 +16,79 @@ SET RUTA_LOG_ORIGINAL=%ruta_log%
 
 SET AD=TESTUSER
 SET COMPUTERNAME=TESTPC
-SET "ruta_log_test=%~dp0test_logs"
+SET "ruta_log_test_base=%~dp0test_logs"
 SET "CAUJUS_SCRIPT_PATH=%~dp0CAUJUS_dev.bat"
-SET "TEST_LOG_FILE=%ruta_log_test%\%AD%_%COMPUTERNAME%.log"
 
-:: Override ruta_log for the CAUJUS_dev.bat script
-SET "ruta_log=%ruta_log_test%"
+:: Determine MonthlyFolder (same logic as in CAUJUS_dev.bat)
+ECHO Determining MonthlyFolder for test setup...
+for /f "tokens=2 delims==" %%a in ('wmic os get LocalDateTime /value') do set test_datetime=%%a
+if not defined test_datetime (
+    ECHO ERROR: Failed to get LocalDateTime from WMIC for test setup.
+    set test_datetime=00000000000000.000000+000
+)
+set "TEST_YY=%test_datetime:~2,2%"
+set "TEST_MesNum=%test_datetime:~4,2%"
+
+if "%TEST_MesNum%"=="01" set "TEST_MesNombre=ene"
+if "%TEST_MesNum%"=="02" set "TEST_MesNombre=feb"
+if "%TEST_MesNum%"=="03" set "TEST_MesNombre=mar"
+if "%TEST_MesNum%"=="04" set "TEST_MesNombre=abr"
+if "%TEST_MesNum%"=="05" set "TEST_MesNombre=may"
+if "%TEST_MesNum%"=="06" set "TEST_MesNombre=jun"
+if "%TEST_MesNum%"=="07" set "TEST_MesNombre=jul"
+if "%TEST_MesNum%"=="08" set "TEST_MesNombre=ago"
+if "%TEST_MesNum%"=="09" set "TEST_MesNombre=sep"
+if "%TEST_MesNum%"=="10" set "TEST_MesNombre=oct"
+if "%TEST_MesNum%"=="11" set "TEST_MesNombre=nov"
+if "%TEST_MesNum%"=="12" set "TEST_MesNombre=dic"
+if not defined TEST_MesNombre (
+    ECHO ERROR: TEST_MesNombre could not be determined. Defaulting to 'MES_DESCONOCIDO_TEST'.
+    set "TEST_MesNombre=MES_DESCONOCIDO_TEST"
+)
+set "MonthlyFolder=%TEST_MesNombre%_%TEST_YY%"
+ECHO MonthlyFolder determined as: %MonthlyFolder%
+ECHO.
+
+SET "TEST_LOG_FILE_DIR=%ruta_log_test_base%\%MonthlyFolder%"
+SET "TEST_LOG_FILE=%TEST_LOG_FILE_DIR%\%AD%_%COMPUTERNAME%.log"
+
+:: Override ruta_log for the CAUJUS_dev.bat script to use the base test log directory
+SET "ruta_log=%ruta_log_test_base%"
 
 ECHO Test User (AD): %AD%
 ECHO Test PC (COMPUTERNAME): %COMPUTERNAME%
-ECHO Test Log Path (ruta_log): %ruta_log%
+ECHO Base Test Log Path (ruta_log_test_base): %ruta_log_test_base%
+ECHO Monthly Test Log Directory (TEST_LOG_FILE_DIR): %TEST_LOG_FILE_DIR%
 ECHO Script to Test: %CAUJUS_SCRIPT_PATH%
 ECHO Expected Log File: %TEST_LOG_FILE%
+ECHO CAUJUS_dev.bat will use ruta_log: %ruta_log%
 ECHO.
 
-ECHO Creating test log directory if it doesn't exist...
-IF NOT EXIST "%ruta_log_test%" (
-    MKDIR "%ruta_log_test%"
+ECHO Creating base test log directory if it doesn't exist...
+IF NOT EXIST "%ruta_log_test_base%" (
+    MKDIR "%ruta_log_test_base%"
     IF ERRORLEVEL 1 (
-        ECHO FAILED to create test log directory: %ruta_log_test%
+        ECHO FAILED to create base test log directory: %ruta_log_test_base%
         GOTO TeardownAndExit
     ) ELSE (
-        ECHO Test log directory created or already exists: %ruta_log_test%
+        ECHO Base test log directory created: %ruta_log_test_base%
     )
 ) ELSE (
-    ECHO Test log directory already exists: %ruta_log_test%
+    ECHO Base test log directory already exists: %ruta_log_test_base%
+)
+ECHO.
+
+ECHO Creating monthly test log directory if it doesn't exist: %TEST_LOG_FILE_DIR%
+IF NOT EXIST "%TEST_LOG_FILE_DIR%" (
+    MKDIR "%TEST_LOG_FILE_DIR%"
+    IF ERRORLEVEL 1 (
+        ECHO FAILED to create monthly test log directory: %TEST_LOG_FILE_DIR%
+        GOTO TeardownAndExit
+    ) ELSE (
+        ECHO Monthly test log directory created: %TEST_LOG_FILE_DIR%
+    )
+) ELSE (
+    ECHO Monthly test log directory already exists: %TEST_LOG_FILE_DIR%
 )
 ECHO.
 
@@ -101,6 +149,12 @@ SET ruta_log=%RUTA_LOG_ORIGINAL%
 IF DEFINED AD_ORIGINAL (SET AD_ORIGINAL=)
 IF DEFINED COMPUTERNAME_ORIGINAL (SET COMPUTERNAME_ORIGINAL=)
 IF DEFINED RUTA_LOG_ORIGINAL (SET RUTA_LOG_ORIGINAL=)
+IF DEFINED TEST_YY (SET TEST_YY=)
+IF DEFINED TEST_MesNum (SET TEST_MesNum=)
+IF DEFINED TEST_MesNombre (SET TEST_MesNombre=)
+IF DEFINED MonthlyFolder (SET MonthlyFolder=)
+IF DEFINED test_datetime (SET test_datetime=)
+
 
 ECHO.
 ECHO ======================================================
