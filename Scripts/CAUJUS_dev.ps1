@@ -1,98 +1,97 @@
 # Script: CAUJUS_dev.ps1
-# Purpose: Provides a menu-driven utility for various CAU IT support tasks.
-# Version: 1.0.0 (Initial PowerShell Migration)
-# Last Modified: $(Get-Date -Format 'yyyy-MM-dd')
+# Propósito: Proporciona una utilidad controlada por menús para diversas tareas de soporte de TI de CAU.
+# Versión: 1.0.0 (Migración Inicial a PowerShell)
+# Última Modificación: $(Get-Date -Format 'yyyy-MM-dd')
 
-# --- Configuration Variables ---
-$config_RemoteLogDir = "\\iusnas05\SIJ\CAU-2012\logs"
-$config_SoftwareBasePath = "\\iusnas05\DDPP\COMUN\Aplicaciones Corporativas"
-$config_DriverBasePath = "\\iusnas05\DDPP\COMUN\_DRIVERS\lectores tarjetas"
+# --- Variables de Configuración ---
+$ConfigRemoteLogDir = "\\iusnas05\SIJ\CAU-2012\logs"
+$ConfigSoftwareBasePath = "\\iusnas05\DDPP\COMUN\Aplicaciones Corporativas"
+$ConfigDriverBasePath = "\\iusnas05\DDPP\COMUN\_DRIVERS\lectores tarjetas"
 
-$config_IslMsiPath = Join-Path $config_SoftwareBasePath "isl.msi"
-$config_FnmtConfigExe = Join-Path $config_SoftwareBasePath "Configurador_FNMT_5.0.0_64bits.exe"
-$config_AutoFirmaExe = Join-Path $config_SoftwareBasePath "AutoFirma_64_v1_8_3_installer.exe"
-$config_AutoFirmaMsi = Join-Path $config_SoftwareBasePath "AutoFirma_v1_6_0_JAv05_installer_64.msi" # Check if this is still needed alongside the .exe
-$config_ChromeMsiPath = Join-Path $config_SoftwareBasePath "chrome.msi"
-$config_LibreOfficeMsiPath = Join-Path $config_SoftwareBasePath "LibreOffice.msi"
+$ConfigIslMsiPath = Join-Path $ConfigSoftwareBasePath "isl.msi"
+$ConfigFnmtConfigExe = Join-Path $ConfigSoftwareBasePath "Configurador_FNMT_5.0.0_64bits.exe"
+$ConfigAutoFirmaExe = Join-Path $ConfigSoftwareBasePath "AutoFirma_64_v1_8_3_installer.exe"
+$ConfigAutoFirmaMsi = Join-Path $ConfigSoftwareBasePath "AutoFirma_v1_6_0_JAv05_installer_64.msi" # Comprobar si esto todavía es necesario junto al .exe
+$ConfigChromeMsiPath = Join-Path $ConfigSoftwareBasePath "chrome.msi"
+$ConfigLibreOfficeMsiPath = Join-Path $ConfigSoftwareBasePath "LibreOffice.msi"
 
-$config_DriverPctPath = Join-Path $config_DriverBasePath "PCT-331_V8.52\SCR3xxx_V8.52.exe"
-$config_DriverSatellitePath = Join-Path $config_DriverBasePath "satellite pro a50c169 smartcard\smr-20151028103759\TCJ0023500B.exe"
+$ConfigDriverPctPath = Join-Path $ConfigDriverBasePath "PCT-331_V8.52\SCR3xxx_V8.52.exe"
+$ConfigDriverSatellitePath = Join-Path $ConfigDriverBasePath "satellite pro a50c169 smartcard\smr-20151028103759\TCJ0023500B.exe"
 
-$config_UrlMiCuentaJunta = "https://micuenta.juntadeandalucia.es/micuenta/es.juntadeandalucia.micuenta.servlets.LoginInicial"
-$config_UrlFnmtSolicitar = "https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener-certificado-software/solicitar-certificado"
-$config_UrlFnmtRenovar = "https://www.sede.fnmt.gob.es/certificados/persona-fisica/renovar/solicitar-renovacion"
-$config_UrlFnmtDescargar = "https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener-certificado-software/descargar-certificado"
+$ConfigUrlMiCuentaJunta = "https://micuenta.juntadeandalucia.es/micuenta/es.juntadeandalucia.micuenta.servlets.LoginInicial"
+$ConfigUrlFnmtSolicitar = "https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener-certificado-software/solicitar-certificado"
+$ConfigUrlFnmtRenovar = "https://www.sede.fnmt.gob.es/certificados/persona-fisica/renovar/solicitar-renovacion"
+$ConfigUrlFnmtDescargar = "https://www.sede.fnmt.gob.es/certificados/persona-fisica/obtener-certificado-software/descargar-certificado"
 
-$config_ScriptVersion = "1.0.0" # PowerShell Migration
-# --- End Configuration Variables ---
+$ConfigScriptVersion = "1.0.0" # Migración PowerShell
+# --- Fin de Variables de Configuración ---
 
-# --- Global Script Variables ---
-$global:adUser = $null
-$global:userProfileName = $env:USERNAME
-$global:currentHostname = $env:COMPUTERNAME
-$global:LOG_DIR = Join-Path $env:TEMP "CAUJUS_Logs"
-$global:LOG_FILE = "" # Will be set after AD user input
+# --- Variables Globales del Script ---
+$GlobalAdUser = $null
+$GlobalUserProfileName = $env:USERNAME
+$GlobalCurrentHostname = $env:COMPUTERNAME
+$GlobalLogDir = Join-Path $env:TEMP "CAUJUS_Logs"
+$GlobalLogFile = "" # Se establecerá después de la entrada del usuario de AD
 
-# --- Jump Host Check ---
+# --- Comprobación de Host de Salto ---
 if ($env:COMPUTERNAME -eq "IUSSWRDPCAU02") {
-    Write-Error "Error, se está ejecutando el script desde la máquina de salto."
+    Write-Error "Error, el script se está ejecutando desde la máquina de salto."
     Read-Host "Presiona Enter para salir..."
     exit 1
 }
 
-# --- Initial User Setup & Logging Initialization ---
+# --- Configuración Inicial de Usuario e Inicialización de Logging ---
 try {
-    $global:adUser = Read-Host "Introduce tu usuario de AD (sin @JUSTICIA)"
-    if ([string]::IsNullOrWhiteSpace($global:adUser)) {
+    $GlobalAdUser = Read-Host "Introduce tu usuario de AD (sin @JUSTICIA)"
+    if ([string]::IsNullOrWhiteSpace($GlobalAdUser)) {
         Write-Error "El usuario de AD no puede estar vacío."
         Read-Host "Presiona Enter para salir..."
         exit 1
     }
 
-    $global:userProfileName = $env:USERNAME # Already set globally, but good to be aware here
-    $global:currentHostname = $env:COMPUTERNAME # Already set globally
-
-    # Set the full LOG_FILE path now that adUser is known
+    # $GlobalUserProfileName and $GlobalCurrentHostname are already set from $env
+    # Establecer la ruta completa de LOG_FILE ahora que se conoce adUser
     $timestampLogName = Get-Date -Format "yyyyMMdd_HHmmss"
-    $global:LOG_FILE = Join-Path $global:LOG_DIR "$($global:adUser)_$($global:currentHostname)_$($timestampLogName).log"
+    $GlobalLogFile = Join-Path $GlobalLogDir "$($GlobalAdUser)_$($GlobalCurrentHostname)_$($timestampLogName).log"
 
-    # Initial log messages
-    Write-Log -Message "Script CAUJUS_dev.ps1 started."
-    Write-Log -Message "User: $($global:userProfileName), AD User: $($global:adUser), Machine: $($global:currentHostname). Logging to: $($global:LOG_FILE)"
+    # Mensajes iniciales de log
+    Write-Log -Message "Script CAUJUS_dev.ps1 iniciado."
+    Write-Log -Message "Usuario: $($GlobalUserProfileName), Usuario AD: $($GlobalAdUser), Máquina: $($GlobalCurrentHostname). Registrando en: $($GlobalLogFile)"
 
-    # Attempt to pre-create log directory here explicitly if Write-Log doesn't handle it early enough for first message
-    if (-not (Test-Path $global:LOG_DIR -PathType Container)) {
-        New-Item -Path $global:LOG_DIR -ItemType Directory -Force | Out-Null
-        Write-Log -Message "Log directory created: $($global:LOG_DIR)"
+    # Intento de pre-crear el directorio de log aquí explícitamente si Write-Log no lo maneja lo suficientemente pronto para el primer mensaje
+    if (-not (Test-Path $GlobalLogDir -PathType Container)) {
+        New-Item -Path $GlobalLogDir -ItemType Directory -Force | Out-Null
+        Write-Log -Message "Directorio de log creado: $($GlobalLogDir)"
     } else {
-        Write-Log -Message "Log directory already exists: $($global:LOG_DIR)"
+        Write-Log -Message "El directorio de log ya existe: $($GlobalLogDir)"
     }
 
-    Write-Log -Message "Attempting initial ISL MSI installation for $adUser@JUSTICIA."
-    $islCommand = "msiexec /i \`"$($config_IslMsiPath)\`" /qn" # Path to MSI is quoted for msiexec
-    Write-Log -Message "Preparing ISL installation command: $islCommand"
+    Write-Log -Message "Intentando instalación inicial de ISL MSI para $GlobalAdUser@JUSTICIA."
+    # La ruta al MSI ($ConfigIslMsiPath) debe estar entrecomillada para msiexec
+    $islCommand = "msiexec /i \`"$($ConfigIslMsiPath)\`" /qn"
+    Write-Log -Message "Preparando comando de instalación ISL: $islCommand"
 
     $islInstallResult = Invoke-ElevatedCommand -CommandToRun $islCommand
 
     if ($islInstallResult -eq 0) {
-        Write-Log -Message "Initial ISL MSI installation via Invoke-ElevatedCommand succeeded."
+        Write-Log -Message "La instalación inicial de ISL MSI mediante Invoke-ElevatedCommand tuvo éxito."
     } else {
-        Write-Log -Message "Initial ISL MSI installation via Invoke-ElevatedCommand failed or ran with errors. Exit code: $islInstallResult" -Level "ERROR"
+        Write-Log -Message "La instalación inicial de ISL MSI mediante Invoke-ElevatedCommand falló o se ejecutó con errores. Código de salida: $islInstallResult" -Level "ERROR"
     }
 
 }
 catch {
     Write-Error "Error durante la configuración inicial: $($_.Exception.Message)"
-    # Try to log the error if possible
-    if (-not [string]::IsNullOrWhiteSpace($global:LOG_FILE))) {
-        Write-Log -Message "CRITICAL ERROR during initial setup: $($_.Exception.Message)" -Level "ERROR"
+    # Intentar registrar el error si es posible
+    if (-not [string]::IsNullOrWhiteSpace($GlobalLogFile))) {
+        Write-Log -Message "ERROR CRÍTICO durante la configuración inicial: $($_.Exception.Message)" -Level "ERROR"
     }
     Read-Host "Presiona Enter para salir..."
     exit 1
 }
-# --- End Initial User Setup & Logging Initialization ---
+# --- Fin de Configuración Inicial de Usuario e Inicialización de Logging ---
 
-# --- Logging Functionality ---
+# --- Funcionalidad de Logging ---
 function Write-Log {
     [CmdletBinding()]
     param (
@@ -104,24 +103,24 @@ function Write-Log {
         [string]$Level = "INFO"
     )
 
-    # Ensure Log Directory Exists
-    if (-not (Test-Path $global:LOG_DIR -PathType Container)) {
+    # Asegurar que el Directorio de Log Exista
+    if (-not (Test-Path $GlobalLogDir -PathType Container)) {
         try {
-            New-Item -Path $global:LOG_DIR -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            New-Item -Path $GlobalLogDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
         }
         catch {
-            Write-Warning "Failed to create log directory: $($global:LOG_DIR). Error: $($_.Exception.Message)"
-            # Fallback or critical error handling might be needed if logging is absolutely essential before this point
+            Write-Warning "Falló la creación del directorio de log: $($GlobalLogDir). Error: $($_.Exception.Message)"
+            # Podría ser necesario un manejo de errores críticos o alternativo si el logging es absolutamente esencial antes de este punto
             return
         }
     }
 
-    # Ensure LOG_FILE is initialized (it will be fully set after AD User input)
-    if ([string]::IsNullOrWhiteSpace($global:LOG_FILE)) {
-        # This condition is a safeguard. LOG_FILE should be set before the first important log message.
-        # For now, we won't log if LOG_FILE isn't set, or we could define a temporary pre-init log.
-        # However, the plan is to set LOG_FILE after getting $adUser.
-        Write-Warning "LOG_FILE is not set. Message not logged: $Message"
+    # Asegurar que LOG_FILE esté inicializado (se establecerá completamente después de la entrada del Usuario AD)
+    if ([string]::IsNullOrWhiteSpace($GlobalLogFile)) {
+        # Esta condición es una salvaguarda. LOG_FILE debería estar establecido antes del primer mensaje de log importante.
+        # Por ahora, no registraremos si LOG_FILE no está configurado, o podríamos definir un log temporal pre-inicialización.
+        # Sin embargo, el plan es establecer LOG_FILE después de obtener $GlobalAdUser.
+        Write-Warning "LOG_FILE no está configurado. Mensaje no registrado: $Message"
         return
     }
 
@@ -129,15 +128,15 @@ function Write-Log {
     $logEntry = "$timestamp - $Level - $Message"
 
     try {
-        Add-Content -Path $global:LOG_FILE -Value $logEntry -ErrorAction Stop
+        Add-Content -Path $GlobalLogFile -Value $logEntry -ErrorAction Stop
     }
     catch {
-        Write-Warning "Failed to write to log file: $($global:LOG_FILE). Error: $($_.Exception.Message)"
+        Write-Warning "Falló la escritura al archivo de log: $($GlobalLogFile). Error: $($_.Exception.Message)"
     }
 }
-# --- End Logging Functionality ---
+# --- Fin de Funcionalidad de Logging ---
 
-# --- Helper Function for Executing Commands with Elevation ---
+# --- Función Auxiliar para Ejecutar Comandos con Elevación ---
 function Invoke-ElevatedCommand {
     [CmdletBinding()]
     param (
@@ -145,62 +144,62 @@ function Invoke-ElevatedCommand {
         [string]$CommandToRun,
 
         [Parameter(Mandatory = $false)]
-        [switch]$NoNewWindow = $true # Default to true for cmd /c commands
+        [switch]$NoNewWindow = $true # Por defecto a true para comandos cmd /c
     )
 
-    if ([string]::IsNullOrWhiteSpace($global:adUser)) {
-        Write-Log -Message "Invoke-ElevatedCommand: adUser is not set. Cannot proceed." -Level "ERROR"
-        # Optionally, re-prompt or exit
-        # Read-Host "Critical error: AD User not set. Press Enter to exit."
-        # exit 1 # Or handle more gracefully depending on where it's called
-        return -1 # Indicate failure
+    if ([string]::IsNullOrWhiteSpace($GlobalAdUser)) {
+        Write-Log -Message "Invoke-ElevatedCommand: adUser no está configurado. No se puede continuar." -Level "ERROR"
+        # Opcionalmente, volver a solicitar o salir
+        # Read-Host "Error crítico: Usuario AD no configurado. Presiona Enter para salir."
+        # exit 1 # O manejarlo de forma más elegante dependiendo de dónde se llame
+        return -1 # Indicar fallo
     }
 
-    # Determine computer's domain
+    # Determinar el dominio del equipo
     try {
         $computerDomain = (Get-WmiObject -Class Win32_ComputerSystem -ErrorAction Stop).Domain
     }
     catch {
-        $computerDomain = $null # Handle cases where domain is not available or WMI query fails
+        $computerDomain = $null # Manejar casos donde el dominio no está disponible o la consulta WMI falla
     }
 
-    # Set fullUser based on the domain
+    # Establecer fullUser basado en el dominio
     if ($computerDomain -ne $null -and $computerDomain.ToUpper() -eq 'JUSTICIA') {
-        $fullUser = "$($global:adUser)@JUSTICIA"
+        $fullUser = "$($GlobalAdUser)@JUSTICIA"
     }
     else {
-        $fullUser = $global:adUser # Use local account if not in JUSTICIA domain or domain is null
+        $fullUser = $GlobalAdUser # Usar cuenta local si no está en el dominio JUSTICIA o el dominio es nulo
     }
 
-    # Ensure the command within quotes is properly escaped if it contains quotes itself.
-    # For simple commands passed as strings, direct embedding is often fine.
-    # Complex commands might need careful handling of nested quotes.
+    # Asegurarse de que el comando entre comillas esté correctamente escapado si contiene comillas.
+    # Para comandos simples pasados como cadenas, la incrustación directa suele estar bien.
+    # Los comandos complejos pueden necesitar un manejo cuidadoso de las comillas anidadas.
     $runasArgs = "/user:$fullUser /savecred `"$CommandToRun`""
 
-    Write-Log -Message "Attempting to execute with elevation: $CommandToRun (User: $fullUser)" -Level "RUNAS"
+    Write-Log -Message "Intentando ejecutar con elevación: $CommandToRun (Usuario: $fullUser)" -Level "RUNAS"
 
     try {
-        $process = Start-Process runas.exe -ArgumentList $runasArgs -Wait -PassThru -ErrorAction Stop -WindowStyle Hidden # Use Hidden for console commands
-        if ($NoNewWindow -eq $false) { # If a new window is expected/allowed (e.g. for GUI apps)
+        $process = Start-Process runas.exe -ArgumentList $runasArgs -Wait -PassThru -ErrorAction Stop -WindowStyle Hidden # Usar Hidden para comandos de consola
+        if ($NoNewWindow -eq $false) { # Si se espera/permite una nueva ventana (ej. para aplicaciones GUI)
              $process = Start-Process runas.exe -ArgumentList $runasArgs -Wait -PassThru -ErrorAction Stop
         }
 
 
-        Write-Log -Message "Elevated command executed. Command: `"$CommandToRun`". Exit Code: $($process.ExitCode)" -Level "INFO"
+        Write-Log -Message "Comando elevado ejecutado. Comando: `"$CommandToRun`". Código de Salida: $($process.ExitCode)" -Level "INFO"
         return $process.ExitCode
     }
     catch {
-        Write-Log -Message "Failed to start elevated process for command: `"$CommandToRun`". Error: $($_.Exception.Message)" -Level "ERROR"
-        # Specific error for access denied if runas itself fails due to bad creds (though /savecred complicates this)
-        if ($_.Exception.NativeErrorCode -eq 5) { # Access is denied
-             Write-Log -Message "Access Denied error when trying to runas. Ensure credentials for $fullUser are saved and valid." -Level "ERROR"
+        Write-Log -Message "Falló el inicio del proceso elevado para el comando: `"$CommandToRun`". Error: $($_.Exception.Message)" -Level "ERROR"
+        # Error específico de acceso denegado si runas falla debido a credenciales incorrectas (aunque /savecred complica esto)
+        if ($_.Exception.NativeErrorCode -eq 5) { # Acceso denegado
+             Write-Log -Message "Error de Acceso Denegado al intentar ejecutar como. Asegúrate de que las credenciales para $fullUser estén guardadas y sean válidas." -Level "ERROR"
         }
-        return -1 # Indicate failure (or a specific error code)
+        return -1 # Indicar fallo (o un código de error específico)
     }
 }
-# --- End Helper Function ---
+# --- Fin de Función Auxiliar ---
 
-# --- Helper Function for Executing Elevated PowerShell ScriptBlocks ---
+# --- Función Auxiliar para Ejecutar Bloques de Script PowerShell Elevados ---
 function Invoke-ElevatedPowerShellCommand {
     [CmdletBinding()]
     param (
@@ -208,174 +207,176 @@ function Invoke-ElevatedPowerShellCommand {
         [string]$ScriptBlockContent,
 
         [Parameter(Mandatory = $false)]
-        [switch]$NoNewWindow = $true # Default to true, similar to Invoke-ElevatedCommand for console commands
+        [switch]$NoNewWindow = $true # Por defecto a true, similar a Invoke-ElevatedCommand para comandos de consola
     )
 
-    Write-Log -Message "Preparing to run elevated PowerShell script content." -Level "INFO"
+    Write-Log -Message "Preparando para ejecutar contenido de script PowerShell elevado." -Level "INFO"
 
     try {
         $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($ScriptBlockContent))
         $commandForPowerShell = "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encodedCommand"
 
-        Write-Log -Message "Encoded PowerShell command: $commandForPowerShell" # Log the command for debugging if needed
+        Write-Log -Message "Comando PowerShell codificado: $commandForPowerShell" # Registrar el comando para depuración si es necesario
 
         $exitCode = Invoke-ElevatedCommand -CommandToRun $commandForPowerShell -NoNewWindow:$NoNewWindow
         return $exitCode
     }
     catch {
-        Write-Log -Message "Error preparing or invoking elevated PowerShell command: $($_.Exception.Message)" -Level "ERROR"
-        return -1 # Indicate failure
+        Write-Log -Message "Error preparando o invocando comando PowerShell elevado: $($_.Exception.Message)" -Level "ERROR"
+        return -1 # Indicar fallo
     }
 }
-# --- End Helper Function for Elevated PowerShell ---
+# --- Fin de Función Auxiliar para PowerShell Elevado ---
 
-# --- Log Upload Functionality ---
+# --- Funcionalidad de Carga de Log ---
 function Upload-LogFile {
     [CmdletBinding()]
-    param () # No parameters needed, uses global vars
+    param () # No se necesitan parámetros, usa variables globales
 
-    if ([string]::IsNullOrWhiteSpace($global:LOG_FILE) -or (-not (Test-Path $global:LOG_FILE -PathType Leaf))) {
-        Write-Log -Message "Upload-LogFile: Log file path is not set or file does not exist: $($global:LOG_FILE)" -Level "WARN"
+    if ([string]::IsNullOrWhiteSpace($GlobalLogFile) -or (-not (Test-Path $GlobalLogFile -PathType Leaf))) {
+        Write-Log -Message "Upload-LogFile: La ruta del archivo de log no está configurada o el archivo no existe: $($GlobalLogFile)" -Level "WARN"
         return $false
     }
 
-    if ([string]::IsNullOrWhiteSpace($config_RemoteLogDir)) {
-        Write-Log -Message "Upload-LogFile: Remote log directory (config_RemoteLogDir) is not configured." -Level "ERROR"
+    if ([string]::IsNullOrWhiteSpace($ConfigRemoteLogDir)) {
+        Write-Log -Message "Upload-LogFile: El directorio de log remoto (ConfigRemoteLogDir) no está configurado." -Level "ERROR"
         return $false
     }
 
-    Write-Log -Message "Preparing to upload log file $($global:LOG_FILE) to network share."
+    Write-Log -Message "Preparando para cargar el archivo de log $($GlobalLogFile) al recurso compartido de red."
 
-    # Extract filename from the full path of $global:LOG_FILE
-    $logFileName = Split-Path -Path $global:LOG_FILE -Leaf
-    $finalLogPathOnShare = Join-Path $config_RemoteLogDir $logFileName
+    # Extraer nombre de archivo de la ruta completa de $GlobalLogFile
+    $logFileName = Split-Path -Path $GlobalLogFile -Leaf
+    $finalLogPathOnShare = Join-Path $ConfigRemoteLogDir $logFileName
 
-    # Ensure remote log directory exists using PowerShell command via Invoke-ElevatedPowerShellCommand
-    # Using -LiteralPath for Test-Path and New-Item to handle potential special characters in $config_RemoteLogDir
-    $psMkdirCommand = "if (-not (Test-Path -LiteralPath \`"$config_RemoteLogDir\`" -PathType Container)) { New-Item -Path \`"$config_RemoteLogDir\`" -ItemType Directory -Force -ErrorAction Stop | Out-Null }"
-    Write-Log -Message "Ensuring remote log directory exists with PowerShell script block: $psMkdirCommand"
-    $mkdirResult = Invoke-ElevatedPowerShellCommand -ScriptBlockContent $psMkdirCommand # -NoNewWindow $true is default
+    # Asegurar que el directorio de log remoto exista usando comando PowerShell mediante Invoke-ElevatedPowerShellCommand
+    # Usando -LiteralPath para Test-Path y New-Item para manejar posibles caracteres especiales en $ConfigRemoteLogDir
+    $psMkdirCommand = "if (-not (Test-Path -LiteralPath \`"$ConfigRemoteLogDir\`" -PathType Container)) { New-Item -Path \`"$ConfigRemoteLogDir\`" -ItemType Directory -Force -ErrorAction Stop | Out-Null }"
+    Write-Log -Message "Asegurando que el directorio de log remoto exista con bloque de script PowerShell: $psMkdirCommand"
+    $mkdirResult = Invoke-ElevatedPowerShellCommand -ScriptBlockContent $psMkdirCommand # -NoNewWindow $true es por defecto
 
     if ($mkdirResult -ne 0) {
-        Write-Log -Message "Failed to create or verify remote log directory using Invoke-ElevatedPowerShellCommand: $config_RemoteLogDir. PowerShell execution Exit Code: $mkdirResult. Upload aborted." -Level "ERROR"
+        Write-Log -Message "Falló la creación o verificación del directorio de log remoto usando Invoke-ElevatedPowerShellCommand: $ConfigRemoteLogDir. Código de Salida de ejecución PowerShell: $mkdirResult. Carga abortada." -Level "ERROR"
         return $false
     }
-    Write-Log -Message "Remote log directory confirmed or created: $config_RemoteLogDir"
+    Write-Log -Message "Directorio de log remoto confirmado o creado: $ConfigRemoteLogDir"
 
-    # Copy the log file using PowerShell Copy-Item via Invoke-ElevatedPowerShellCommand
-    # Using -LiteralPath for source and -Destination for target path
-    $psCopyCommand = "Copy-Item -LiteralPath \`"$($global:LOG_FILE)\`" -Destination \`"$finalLogPathOnShare\`" -Force -ErrorAction Stop"
-    Write-Log -Message "Attempting to copy log file with PowerShell script block: $psCopyCommand"
-    $copyResult = Invoke-ElevatedPowerShellCommand -ScriptBlockContent $psCopyCommand # -NoNewWindow $true is default
+    # Copiar el archivo de log usando PowerShell Copy-Item mediante Invoke-ElevatedPowerShellCommand
+    # Usando -LiteralPath para origen y -Destination para ruta de destino
+    $psCopyCommand = "Copy-Item -LiteralPath \`"$($GlobalLogFile)\`" -Destination \`"$finalLogPathOnShare\`" -Force -ErrorAction Stop"
+    Write-Log -Message "Intentando copiar archivo de log con bloque de script PowerShell: $psCopyCommand"
+    $copyResult = Invoke-ElevatedPowerShellCommand -ScriptBlockContent $psCopyCommand # -NoNewWindow $true es por defecto
 
     if ($copyResult -eq 0) {
-        Write-Log -Message "Log file upload attempt with Invoke-ElevatedPowerShellCommand successful to $finalLogPathOnShare."
+        Write-Log -Message "Intento de carga de archivo de log con Invoke-ElevatedPowerShellCommand exitoso a $finalLogPathOnShare."
         return $true
     } else {
-        Write-Log -Message "Log file upload with Invoke-ElevatedPowerShellCommand failed. PowerShell execution Exit Code: $copyResult. Source: $($global:LOG_FILE), Destination: $finalLogPathOnShare" -Level "ERROR"
+        Write-Log -Message "Carga de archivo de log con Invoke-ElevatedPowerShellCommand fallida. Código de Salida de ejecución PowerShell: $copyResult. Origen: $($GlobalLogFile), Destino: $finalLogPathOnShare" -Level "ERROR"
         return $false
     }
 }
-# --- End Log Upload Functionality ---
+# --- Fin de Funcionalidad de Carga de Log ---
 
-# --- Self-Delete Functionality ---
+# --- Funcionalidad de Auto-eliminación ---
 function Invoke-SelfDelete {
     [CmdletBinding()]
     param ()
 
-    Write-Log -Message "Initiating self-delete sequence."
+    Write-Log -Message "Iniciando secuencia de auto-eliminación."
 
-    # Upload the log file before deleting the script
-    Write-Log -Message "Attempting to upload log file before self-deletion."
+    # Cargar el archivo de log antes de eliminar el script
+    Write-Log -Message "Intentando cargar el archivo de log antes de la auto-eliminación."
     $uploadSuccess = Upload-LogFile
     if ($uploadSuccess) {
-        Write-Log -Message "Log file uploaded successfully prior to self-delete."
+        Write-Log -Message "Archivo de log cargado exitosamente antes de la auto-eliminación."
     } else {
-        Write-Log -Message "Log file upload failed or was skipped prior to self-delete. Check previous logs." -Level "WARN"
+        Write-Log -Message "La carga del archivo de log falló o se omitió antes de la auto-eliminación. Comprueba los logs anteriores." -Level "WARN"
     }
 
     $currentScriptPath = $MyInvocation.MyCommand.Path
-    Write-Log -Message "Script path to be deleted: $currentScriptPath"
+    Write-Log -Message "Ruta del script a eliminar: $currentScriptPath"
 
     try {
-        # Log this message just before actual deletion
-        Write-Log -Message "Attempting to delete the script file now: $currentScriptPath"
+        # Registrar este mensaje justo antes de la eliminación real
+        Write-Log -Message "Intentando eliminar el archivo de script ahora: $currentScriptPath"
 
-        # Brief pause to ensure log is written before file disappears
+        # Breve pausa para asegurar que el log se escriba antes de que el archivo desaparezca
         Start-Sleep -Milliseconds 200
 
         Remove-Item -Path $currentScriptPath -Force -ErrorAction Stop
 
-        # This message below won't be logged to the deleted file,
-        # but it's here for completeness of what the function tries to do.
-        # If there was a central/external logging, it could go there.
-        # Write-Log -Message "Script file has been deleted." # This won't make it to its own log
+        # Este mensaje de abajo no se registrará en el archivo eliminado,
+        # pero está aquí para completar lo que la función intenta hacer.
+        # Si hubiera un logging central/externo, podría ir allí.
+        # Write-Log -Message "El archivo de script ha sido eliminado." # Esto no llegará a su propio log
 
-        Write-Host "Script has been removed and will now exit."
-        Start-Sleep -Seconds 1 # Allow user to see message
-        Exit 0 # Exit script execution
+        Write-Host "El script ha sido eliminado y ahora saldrá."
+        Start-Sleep -Seconds 1 # Permitir al usuario ver el mensaje
+        Exit 0 # Salir de la ejecución del script
     }
     catch {
-        # This will also likely not make it to the log file if deletion was partial or path is now bad
-        Write-Log -Message "Error during self-deletion: $($_.Exception.Message). Script may still exist at $currentScriptPath" -Level "ERROR"
-        Write-Host "Error attempting to self-delete. Script may still exist."
-        Read-Host "Press Enter to exit."
-        Exit 1 # Exit with an error code
+        # Esto tampoco llegará probablemente al archivo de log si la eliminación fue parcial o la ruta ahora es incorrecta
+        Write-Log -Message "Error durante la auto-eliminación: $($_.Exception.Message). El script aún podría existir en $currentScriptPath" -Level "ERROR"
+        Write-Host "Error al intentar auto-eliminarse. El script aún podría existir."
+        Read-Host "Presiona Enter para salir..."
+        Exit 1 # Salir con un código de error
     }
 }
-# --- End Self-Delete Functionality ---
+# --- Fin de Funcionalidad de Auto-eliminación ---
 
-# --- Batery_test Helper Functions ---
-function Stop-CommonBrowsers {
-    Write-Log -Message "BT: Killing common browser processes."
-    $browsers = "chrome", "iexplore", "msedge", "firefox" # Added firefox
+# --- Funciones Auxiliares de Batery_test ---
+function DetenerNavegadoresComunes {
+    Write-Log -Message "BT: Terminando procesos comunes de navegadores."
+    $browsers = "chrome", "iexplore", "msedge", "firefox" # Firefox añadido
     foreach ($browser in $browsers) {
         Stop-Process -Name $browser -Force -ErrorAction SilentlyContinue
-        if ($?) { Write-Log -Message "BT: Process $browser stopped or was not running." } # $? might be true even if process not found with SilentlyContinue
+        if ($?) { Write-Log -Message "BT: Proceso $browser detenido o no se estaba ejecutando." } # $? podría ser true incluso si el proceso no se encuentra con SilentlyContinue
     }
 }
 
-function Clear-SystemAndUserCaches {
-    Write-Log -Message "BT: Clearing system and user caches."
+function LimpiarCachesSistemaUsuario {
+    Write-Log -Message "BT: Limpiando cachés del sistema y del usuario."
 
-    Write-Log -Message "BT: Flushing DNS cache."
+    Write-Log -Message "BT: Limpiando caché DNS."
     Clear-DnsClientCache
-    Write-Log -Message "BT: DNS cache flushed."
+    Write-Log -Message "BT: Caché DNS limpiada."
 
     $clearTracksCommands = @(
-        "RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 16", # Passwords
-        "RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 8",  # History
+        "RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 16", # Contraseñas
+        "RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 8",  # Historial
         "RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 2",  # Cookies
-        "RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 1"   # Temp Internet Files
+        "RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 1"   # Archivos temporales de Internet
     )
     foreach ($command in $clearTracksCommands) {
-        Write-Log -Message "BT: Executing cache clearing: $command"
+        Write-Log -Message "BT: Ejecutando limpieza de caché: $command"
         try {
-            # Splitting command and arguments for Start-Process
+            # Dividiendo comando y argumentos para Start-Process
             $executable = $command.Split(' ',2)[0]
             $arguments = $command.Split(' ',2)[1]
             Start-Process -FilePath $executable -ArgumentList $arguments -Wait -NoNewWindow -ErrorAction Stop
-            Write-Log -Message "BT: Successfully executed $command"
+            Write-Log -Message "BT: Ejecutado $command con éxito"
         } catch {
-            Write-Log -Message "BT: Failed to execute $command. Error: $($_.Exception.Message)" -Level "WARN"
+            Write-Log -Message "BT: Falló la ejecución de $command. Error: $($_.Exception.Message)" -Level "WARN"
         }
     }
 
     $chromeCachePath = Join-Path $env:LOCALAPPDATA "Google\Chrome\User Data\Default\Cache"
     if (Test-Path $chromeCachePath) {
-        Write-Log -Message "BT: Clearing Chrome cache at $chromeCachePath"
-        # Ensure the path for Remove-Item is correctly quoted if it might contain spaces, though $chromeCachePath typically doesn't.
+        Write-Log -Message "BT: Limpiando caché de Chrome en $chromeCachePath"
+        # Asegurarse de que la ruta para Remove-Item esté correctamente entrecomillada si pudiera contener espacios, aunque $chromeCachePath típicamente no los tiene.
         Remove-Item -Path "$($chromeCachePath)\*" -Recurse -Force -ErrorAction SilentlyContinue
-        if ($LASTEXITCODE -eq 0 -or $? ) { Write-Log -Message "BT: Chrome cache cleared or attempt finished."} # Check $? or $LASTEXITCODE
+        # Con ErrorAction SilentlyContinue, $? debería ser $true si el comando no tuvo errores fatales para PowerShell en sí.
+        # No se puede garantizar que todos los archivos hayan sido eliminados sin una verificación explícita posterior.
+        Write-Log -Message "BT: Intento de limpieza de caché de Chrome en $chromeCachePath completado (ErrorAction: SilentlyContinue)."
     } else {
-        Write-Log -Message "BT: Chrome cache path not found: $chromeCachePath" -Level "WARN"
+        Write-Log -Message "BT: Ruta de caché de Chrome no encontrada: $chromeCachePath" -Level "WARN"
     }
 }
 
-function Apply-VisualEffectRegTweaks {
-    Write-Log -Message "BT: Applying visual effect registry tweaks."
-    # Using HKCU paths directly. These are applied to the user context under which Invoke-ElevatedCommand runs the REG command.
-    # If $adUser is different from current user, these apply to $adUser's HKCU.
+function AplicarAjustesRegistroEfectosVisuales {
+    Write-Log -Message "BT: Aplicando ajustes de registro para efectos visuales."
+    # Usando rutas HKCU directamente. Estas se aplican al contexto de usuario bajo el cual Invoke-ElevatedCommand ejecuta el comando REG.
+    # Si $GlobalAdUser es diferente del usuario actual, estos se aplican al HKCU de $GlobalAdUser.
     $regTweaks = @{
         "HKEY_CURRENT_USER\Control Panel\Desktop\WindowMetrics" = @{ "MinAnimate" = @{ Value = "0"; Type = "REG_SZ" } }
         "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" = @{ "TaskbarAnimations" = @{ Value = 0; Type = "REG_DWORD" } }
@@ -388,7 +389,7 @@ function Apply-VisualEffectRegTweaks {
             "MenuAnimation" = @{ Value = 0; Type = "REG_DWORD" };
             "SelectionFade" = @{ Value = 0; Type = "REG_DWORD" };
             "TooltipAnimation" = @{ Value = 0; Type = "REG_DWORD" };
-            "Fade" = @{ Value = 0; Type = "REG_DWORD" } # Assuming this was for VisualEffects too
+            "Fade" = @{ Value = 0; Type = "REG_DWORD" } # Asumiendo que esto también era para VisualEffects
         }
     }
 
@@ -399,35 +400,35 @@ function Apply-VisualEffectRegTweaks {
             $valueData = $item.Value
             $valueType = $item.Type
 
-            # Path for REG ADD needs to be unescaped (no 'HKEY_CURRENT_USER:' prefix from PS)
-            $regPathForCommand = $path.Replace("HKEY_CURRENT_USER", "HKCU") # Or use full HKEY_CURRENT_USER
-                                    .Replace("HKEY_LOCAL_MACHINE", "HKLM") # If ever needed
+            # La ruta para REG ADD necesita ser no escapada (sin prefijo 'HKEY_CURRENT_USER:' de PS)
+            $regPathForCommand = $path.Replace("HKEY_CURRENT_USER", "HKCU") # O usar HKEY_CURRENT_USER completo
+                                    .Replace("HKEY_LOCAL_MACHINE", "HKLM") # Si alguna vez es necesario
 
             $command = "REG ADD `"$regPathForCommand`" /v `"$name`" /t $valueType /d `"$valueData`" /f"
-            Write-Log -Message "BT: Applying reg tweak: $command"
+            Write-Log -Message "BT: Aplicando ajuste de registro: $command"
             $result = Invoke-ElevatedCommand -CommandToRun $command
             if ($result -ne 0) {
-                Write-Log -Message "BT: Failed to apply reg tweak for $name at $regPathForCommand. Exit code: $result" -Level "WARN"
+                Write-Log -Message "BT: Falló la aplicación del ajuste de registro para $name en $regPathForCommand. Código de salida: $result" -Level "WARN"
             }
         }
     }
-    Write-Log -Message "BT: Visual effect registry tweaks application process finished."
+    Write-Log -Message "BT: Proceso de aplicación de ajustes de registro para efectos visuales finalizado."
 }
 
-function Perform-SystemMaintenanceTasks {
-    Write-Log -Message "BT: Performing system maintenance tasks."
+function RealizarTareasMantenimientoSistema {
+    Write-Log -Message "BT: Realizando tareas de mantenimiento del sistema."
 
-    Write-Log -Message "BT: Running gpupdate /force."
+    Write-Log -Message "BT: Ejecutando gpupdate /force."
     $gpResult = Invoke-ElevatedCommand -CommandToRun "gpupdate /force"
-    Write-Log -Message "BT: gpupdate /force completed. Exit code: $gpResult"
+    Write-Log -Message "BT: gpupdate /force completado. Código de salida: $gpResult"
 
-    Write-Log -Message "BT: Ensuring ISL is installed (re-running installer)."
-    $islCommand = "msiexec /i `"$($config_IslMsiPath)`" /qn" # $config_IslMsiPath should be correctly defined globally
+    Write-Log -Message "BT: Asegurando que ISL esté instalado (re-ejecutando instalador)."
+    $islCommand = "msiexec /i \`"$($ConfigIslMsiPath)\`" /qn" # $ConfigIslMsiPath debería estar correctamente definido globalmente
     $islResult = Invoke-ElevatedCommand -CommandToRun $islCommand
-    Write-Log -Message "BT: ISL MSI installer executed. Exit code: $islResult"
+    Write-Log -Message "BT: Instalador ISL MSI ejecutado. Código de salida: $islResult"
 
-    # System-wide paths for cleaning
-    Write-Log -Message "BT: Cleaning system-wide paths."
+    # Rutas de todo el sistema para limpieza
+    Write-Log -Message "BT: Limpiando rutas de todo el sistema."
     $pathsToCleanSystemDrive = @(
         "%windir%\*.bak",
         "%windir%\SoftwareDistribution\Download\*.*",
@@ -445,15 +446,15 @@ function Perform-SystemMaintenanceTasks {
                                .Replace("%LOCALAPPDATA%", '$env:LOCALAPPDATA') `
                                .Replace("%APPDATA%", '$env:APPDATA') `
                                .Replace("*.*", "*") `
-                               .Replace("`"", "") # Remove outer quotes from original pattern if any were left
+                               .Replace("`"", "") # Eliminar comillas externas del patrón original si quedara alguna
 
         $psCommand = "Remove-Item -Path '${psPath}' -Recurse -Force -ErrorAction Stop"
-        Write-Log -Message "BT: Cleaning files with PowerShell script block: $psCommand"
+        Write-Log -Message "BT: Limpiando archivos con bloque de script PowerShell: $psCommand"
         Invoke-ElevatedPowerShellCommand -ScriptBlockContent $psCommand
     }
 
-    # User-specific paths for cleaning
-    Write-Log -Message "BT: Cleaning user-specific paths (Note: context is for AD User: $($global:adUser))." -Level "WARN"
+    # Rutas específicas del usuario para limpieza
+    Write-Log -Message "BT: Limpiando rutas específicas del usuario (Nota: el contexto es para el Usuario AD: $($GlobalAdUser))." -Level "WARN"
     $userSpecificPathsForElevatedDel = @(
         "%TEMP%\*.*",
         "%LOCALAPPDATA%\Microsoft\Windows\Temporary Internet Files\*.*",
@@ -473,19 +474,19 @@ function Perform-SystemMaintenanceTasks {
                                .Replace("*.*", "*") `
                                .Replace("`"", "")
 
-        # For user-specific paths, it's good to ensure the parent directory exists before attempting deletion,
-        # though Remove-Item with -Force and SilentlyContinue handles non-existent paths gracefully.
-        # The original IF EXIST was for cmd.exe; Remove-Item handles this inherently.
+        # Para rutas específicas del usuario, es bueno asegurarse de que el directorio padre exista antes de intentar la eliminación,
+        # aunque Remove-Item con -Force y SilentlyContinue maneja rutas inexistentes elegantemente.
+        # El IF EXIST original era para cmd.exe; Remove-Item maneja esto inherentemente.
         $psCommand = "Remove-Item -Path '${psPath}' -Recurse -Force -ErrorAction Stop"
-        Write-Log -Message "BT: Cleaning user files with PowerShell script block: $psCommand"
+        Write-Log -Message "BT: Limpiando archivos de usuario con bloque de script PowerShell: $psCommand"
         Invoke-ElevatedPowerShellCommand -ScriptBlockContent $psCommand
     }
 
-    # Recreating folders
-    Write-Log -Message "BT: Recreating specified folders (Note: context is for AD User: $($global:adUser) if env vars like %windir% are used directly)."
+    # Recreando carpetas
+    Write-Log -Message "BT: Recreando carpetas especificadas (Nota: el contexto es para el Usuario AD: $($GlobalAdUser) si se usan variables de entorno como %windir% directamente)."
     $foldersToRecreate = @(
         "%windir%\Temp"
-        # "%USERPROFILE%\Local Settings\Temp" # This is effectively $env:TEMP, handled by user specific cleaning if pattern matches
+        # "%USERPROFILE%\Local Settings\Temp" # Esto es efectivamente $env:TEMP, manejado por la limpieza específica del usuario si el patrón coincide
     )
 
     foreach ($folderPathPattern in $foldersToRecreate) {
@@ -497,174 +498,174 @@ function Perform-SystemMaintenanceTasks {
                                     .Replace("`"", "")
 
         $psCommand = "Remove-Item -Path '${psPath}' -Recurse -Force -ErrorAction Stop; New-Item -Path '${psPath}' -ItemType Directory -Force -ErrorAction Stop"
-        Write-Log -Message "BT: Recreating folder with PowerShell script block: $psCommand"
+        Write-Log -Message "BT: Recreando carpeta con bloque de script PowerShell: $psCommand"
         Invoke-ElevatedPowerShellCommand -ScriptBlockContent $psCommand
     }
-    Write-Log -Message "BT: System maintenance tasks finished."
+    Write-Log -Message "BT: Tareas de mantenimiento del sistema finalizadas."
 }
-# --- End Batery_test Helper Functions ---
+# --- Fin de Funciones Auxiliares de Batery_test ---
 
-# --- Batery_test Main Function ---
-function Invoke-BatteryTest {
-    Write-Log -Message "Action: Starting Batery_test."
+# --- Función Principal de Batery_test ---
+function InvocarBateriaPruebas {
+    Write-Log -Message "Acción: Iniciando Batería de Pruebas." # Updated message
 
-    Stop-CommonBrowsers
-    Clear-SystemAndUserCaches
-    Apply-VisualEffectRegTweaks
-    Perform-SystemMaintenanceTasks
+    DetenerNavegadoresComunes
+    LimpiarCachesSistemaUsuario
+    AplicarAjustesRegistroEfectosVisuales
+    RealizarTareasMantenimientoSistema
 
-    Write-Log -Message "INFO - Action: Prompting for restart in Batery_test."
-    Write-Host "`nBateria de pruebas completada." # Added newline for better spacing
+    Write-Log -Message "INFO - Acción: Solicitando reinicio en Batería de Pruebas." # Updated message
+    Write-Host "`nBatería de pruebas completada." # Añadido salto de línea para mejor espaciado
 
     $validResponse = $false
     $restartChoice = ""
     while (-not $validResponse) {
         $restartChoice = Read-Host "Reiniciar equipo ahora? (s/n)"
-        if ($restartChoice.ToLower() -match '^[sn]$') { # .ToLower() for case-insensitivity
+        if ($restartChoice.ToLower() -match '^[sn]$') { # .ToLower() para insensibilidad a mayúsculas/minúsculas
             $validResponse = $true
         } else {
             Write-Warning "Respuesta no válida. Introduce 's' para sí o 'n' para no."
         }
     }
 
-    if ($restartChoice.ToLower() -eq 's') { # Ensure case-insensitivity for safety
-        Write-Log -Message "User chose to restart."
+    if ($restartChoice.ToLower() -eq 's') { # Asegurar insensibilidad a mayúsculas/minúsculas por seguridad
+        Write-Log -Message "Usuario eligió reiniciar."
 
-        Write-Log -Message "Attempting to upload log file before system restart."
+        Write-Log -Message "Intentando cargar archivo de log antes del reinicio del sistema."
         $uploadSuccess = Upload-LogFile
         if ($uploadSuccess) {
-            Write-Log -Message "Log file uploaded successfully before restart."
+            Write-Log -Message "Archivo de log cargado exitosamente antes del reinicio."
         } else {
-            Write-Log -Message "Log file upload failed or was skipped before restart. Check previous logs." -Level "WARN"
+            Write-Log -Message "La carga del archivo de log falló o se omitió antes del reinicio. Comprueba los logs anteriores." -Level "WARN"
         }
 
-        Write-Log -Message "Initiating computer restart NOW."
+        Write-Log -Message "Iniciando reinicio del equipo AHORA."
         Restart-Computer -Force
 
-        # --- Best effort self-delete after restart command ---
-        # The following lines are a best-effort attempt as Restart-Computer might terminate script execution abruptly.
-        Write-Log -Message "Attempting self-deletion of script post-restart command (best effort)."
-        $currentScriptPathForDelete = $MyInvocation.MyCommand.Path # Use a different variable name to avoid conflict if $currentScriptPath is used elsewhere
+        # --- Auto-eliminación de mejor esfuerzo después del comando de reinicio ---
+        # Las siguientes líneas son un intento de mejor esfuerzo ya que Restart-Computer podría terminar la ejecución del script abruptamente.
+        Write-Log -Message "Intentando auto-eliminación del script post-comando de reinicio (mejor esfuerzo)."
+        $currentScriptPathForDelete = $MyInvocation.MyCommand.Path # Usar un nombre de variable diferente para evitar conflictos si $currentScriptPath se usa en otro lugar
         try {
-            # Brief pause, may allow logs to flush or restart to fully initialize in background.
+            # Breve pausa, puede permitir que los logs se vacíen o que el reinicio se inicialice completamente en segundo plano.
             Start-Sleep -Milliseconds 250
             if (Test-Path $currentScriptPathForDelete -PathType Leaf) {
                 Remove-Item -Path $currentScriptPathForDelete -Force -ErrorAction SilentlyContinue
-                # Log this attempt, but it might not be written if restart is too fast.
-                # Consider that this log entry is for a scenario where the script *might* continue for a moment.
-                Add-Content -Path $global:LOG_FILE -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - INFO - Best-effort self-delete: Remove-Item command issued for $currentScriptPathForDelete." -ErrorAction SilentlyContinue
+                # Registrar este intento, pero podría no escribirse si el reinicio es demasiado rápido.
+                # Considerar que esta entrada de log es para un escenario donde el script *podría* continuar por un momento.
+                Add-Content -Path $GlobalLogFile -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - INFO - Auto-eliminación mejor esfuerzo: Comando Remove-Item emitido para $currentScriptPathForDelete." -ErrorAction SilentlyContinue
             }
         }
         catch {
-            # This catch block and its log are also best-effort.
-            Add-Content -Path $global:LOG_FILE -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - WARN - Best-effort self-delete: Error trying to remove script $currentScriptPathForDelete. Error: $($_.Exception.Message)" -ErrorAction SilentlyContinue
+            # Este bloque catch y su log también son de mejor esfuerzo.
+            Add-Content -Path $GlobalLogFile -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - WARN - Auto-eliminación mejor esfuerzo: Error intentando eliminar script $currentScriptPathForDelete. Error: $($_.Exception.Message)" -ErrorAction SilentlyContinue
         }
-        # Script execution will be taken over by the restart process. No explicit Exit needed here.
+        # La ejecución del script será asumida por el proceso de reinicio. No se necesita Exit explícito aquí.
     } else {
-        Write-Log -Message "User chose not to restart. Uploading log and self-deleting script."
-        Invoke-SelfDelete # This function handles log upload, script deletion, and then Exits.
+        Write-Log -Message "Usuario eligió no reiniciar. Cargando log y auto-eliminando script."
+        Invoke-SelfDelete # Esta función maneja la carga de logs, la eliminación del script y luego sale.
     }
-    # Script execution effectively stops here due to Invoke-SelfDelete or Restart-Computer (in the 's' case).
+    # La ejecución del script se detiene efectivamente aquí debido a Invoke-SelfDelete o Restart-Computer (en el caso 's').
 }
-# --- End Batery_test Main Function ---
+# --- Fin de la Función Principal de Batery_test ---
 
-# --- Cambiar password correo Function ---
-function Invoke-OpenChangePasswordUrl {
-    Write-Log -Message "Action: Starting Invoke-OpenChangePasswordUrl. Opening URL: $($config_UrlMiCuentaJunta)"
+# --- Función Cambiar Contraseña Correo ---
+function AbrirUrlCambiarContraseña {
+    Write-Log -Message "Acción: Iniciando AbrirUrlCambiarContraseña. Abriendo URL: $($ConfigUrlMiCuentaJunta)"
 
     try {
-        Start-Process "chrome.exe" -ArgumentList $config_UrlMiCuentaJunta -ErrorAction Stop
-        Write-Log -Message "Successfully launched Chrome with URL: $($config_UrlMiCuentaJunta)"
+        Start-Process "chrome.exe" -ArgumentList $ConfigUrlMiCuentaJunta -ErrorAction Stop
+        Write-Log -Message "Chrome iniciado con éxito con URL: $($ConfigUrlMiCuentaJunta)"
     }
     catch {
-        Write-Log -Message "Failed to start Chrome with URL: $($config_UrlMiCuentaJunta). Error: $($_.Exception.Message)" -Level "ERROR"
+        Write-Log -Message "Falló el inicio de Chrome con URL: $($ConfigUrlMiCuentaJunta). Error: $($_.Exception.Message)" -Level "ERROR"
         Write-Warning "No se pudo abrir Chrome. Verifica que esté instalado y accesible."
-        # Decide if we should still self-delete or return to menu
+        # Decidir si aún debemos auto-eliminarnos o volver al menú
         Read-Host "Presiona Enter para continuar..."
-        return # Return to main menu if Chrome fails to start
+        return # Volver al menú principal si Chrome no se inicia
     }
 
-    # Original script self-deletes after this action
-    Write-Log -Message "URL opened. Script will now self-delete as per original logic."
-    Invoke-SelfDelete # This handles log upload, script deletion, and exit
+    # El script original se auto-elimina después de esta acción
+    Write-Log -Message "URL abierta. El script ahora se auto-eliminará según la lógica original."
+    InvocarAutoeliminacion # Esto maneja la carga de logs, eliminación del script y salida
 }
-# --- End Cambiar password correo Function ---
+# --- Fin Función Cambiar Contraseña Correo ---
 
-# --- Reiniciar cola impresion Function ---
-function Invoke-ResetPrintSpooler {
-    Write-Log -Message "Action: Starting Invoke-ResetPrintSpooler."
+# --- Función Reiniciar Cola Impresión ---
+function ReiniciarServicioColaImpresion {
+    Write-Log -Message "Acción: Iniciando ReiniciarServicioColaImpresion." # Updated message
 
-    # The command from the batch script is complex due to FOR loop and embedded commands.
-    # Escaping for cmd /c run via Invoke-ElevatedCommand needs care.
+    # El comando del script batch es complejo debido al bucle FOR y comandos incrustados.
+    # El escapado para la ejecución de cmd /c mediante Invoke-ElevatedCommand necesita cuidado.
     # Original: FOR /F "tokens=3,*" %%a IN ('cscript c:\windows\System32\printing_Admin_Scripts\es-ES\prnmngr.vbs -l ^| FINDSTR "Nombre de impresora"') DO cscript c:\windows\System32\printing_Admin_Scripts\es-ES\prnqctl.vbs -m -p "%%b"
-    # PowerShell translation for the command string:
-    # - %%a becomes %a, %%b becomes %b inside the cmd /c string
-    # - Inner single quotes for the IN clause of FOR
-    # - Escaped quotes for FINDSTR and for -p parameter
-    # - Pipe character ^| becomes just | within the cmd /c string, but might need escaping if PowerShell parses it first.
-    #   It's safer to pass the whole thing as a literal string to cmd /c.
+    # Traducción de PowerShell para la cadena de comando:
+    # - %%a se convierte en %a, %%b se convierte en %b dentro de la cadena cmd /c
+    # - Comillas simples internas para la cláusula IN de FOR
+    # - Comillas escapadas para FINDSTR y para el parámetro -p
+    # - El carácter de tubería ^| se convierte en solo | dentro de la cadena cmd /c, pero podría necesitar escapado si PowerShell lo analiza primero.
+    #   Es más seguro pasar todo como una cadena literal a cmd /c.
 
-    $vbScriptPath = "c:\windows\System32\printing_Admin_Scripts\es-ES" # Standard path
+    $vbScriptPath = "c:\windows\System32\printing_Admin_Scripts\es-ES" # Ruta estándar
     $prnmngrCmd = "cscript.exe `"$vbScriptPath\prnmngr.vbs`" -l"
-    $findstrCmd = "FINDSTR `"/C:Nombre de impresora`"" # Using /C: for literal search string
+    $findstrCmd = "FINDSTR `"/C:Nombre de impresora`"" # Usando /C: para cadena de búsqueda literal
     $prnqctlBaseCmd = "cscript.exe `"$vbScriptPath\prnqctl.vbs`" -m -p"
 
-    # Constructing the FOR loop command string for cmd.exe:
-    # Note: %%a and %%b are for batch files. In a direct CMD command line, it's %a and %b.
-    # The `cmd /c` will interpret %a and %b correctly.
+    # Construyendo la cadena de comando del bucle FOR para cmd.exe:
+    # Nota: %%a y %%b son para archivos batch. En una línea de comando CMD directa, son %a y %b.
+    # `cmd /c` interpretará %a y %b correctamente.
     $commandToRun = "FOR /F `"tokens=3,*`" %a IN ('$prnmngrCmd ^| $findstrCmd') DO $prnqctlBaseCmd `"%b`""
-    # Full command for cmd /c
+    # Comando completo para cmd /c
     $fullCmdCommand = "cmd /c $commandToRun"
 
-    Write-Log -Message "Attempting to reset printer queues with command: $fullCmdCommand" -Level "RUNAS"
+    Write-Log -Message "Intentando reiniciar colas de impresión con comando: $fullCmdCommand" -Level "RUNAS"
 
-    $result = Invoke-ElevatedCommand -CommandToRun $fullCmdCommand -NoNewWindow $true # Ensure NoNewWindow
+    $result = Invoke-ElevatedCommand -CommandToRun $fullCmdCommand -NoNewWindow $true # Asegurar NoNewWindow
 
     if ($result -eq 0) {
-        Write-Log -Message "Printer queue reset command executed successfully (Exit Code: $result)."
+        Write-Log -Message "Comando de reinicio de cola de impresión ejecutado con éxito (Código de Salida: $result)."
         Write-Host "Comando para reiniciar las colas de impresión ejecutado."
     } else {
-        Write-Log -Message "Printer queue reset command failed or executed with errors (Exit Code: $result)." -Level "ERROR"
+        Write-Log -Message "Comando de reinicio de cola de impresión falló o se ejecutó con errores (Código de Salida: $result)." -Level "ERROR"
         Write-Warning "El comando para reiniciar las colas de impresión pudo haber fallado (Código de salida: $result)."
     }
 
-    # Original script self-deletes after this action
-    Write-Log -Message "Printer queue reset action finished. Script will now self-delete."
-    # Give a moment for user to see any messages from the command if it wasn't entirely silent.
+    # El script original se auto-elimina después de esta acción
+    Write-Log -Message "Acción de reinicio de cola de impresión finalizada. El script ahora se auto-eliminará."
+    # Dar un momento al usuario para ver cualquier mensaje del comando si no fue completamente silencioso.
     Read-Host "Presiona Enter para continuar con la salida del script..."
-    Invoke-SelfDelete # This handles log upload, script deletion, and exit
+    InvocarAutoeliminacion # Esto maneja la carga de logs, eliminación del script y salida
 }
-# --- End Reiniciar cola impresion Function ---
+# --- Fin Función Reiniciar Cola Impresión ---
 
-# --- Administrador de dispositivos Function ---
-function Show-DeviceManager {
-    Write-Log -Message "Action: Starting Show-DeviceManager. Opening Device Manager."
+# --- Función Administrador de Dispositivos ---
+function MostrarAdministradorDispositivos {
+    Write-Log -Message "Acción: Iniciando MostrarAdministradorDispositivos. Abriendo Administrador de Dispositivos." # Updated message
 
-    # This corresponds to line 214 of the original batch script:
+    # Esto corresponde a la línea 214 del script batch original:
     # CALL :ExecuteWithRunas "RunDll32.exe devmgr.dll DeviceManager_Execute"
     $commandToRun = "RunDll32.exe devmgr.dll DeviceManager_Execute"
 
-    Write-Log -Message "Attempting to open Device Manager with command: $commandToRun" -Level "RUNAS"
-    $result = Invoke-ElevatedCommand -CommandToRun $commandToRun -NoNewWindow $false # Ensure GUI is visible
+    Write-Log -Message "Intentando abrir Administrador de Dispositivos con comando: $commandToRun" -Level "RUNAS"
+    $result = Invoke-ElevatedCommand -CommandToRun $commandToRun -NoNewWindow $false # Asegurar que la GUI sea visible
 
     if ($result -eq 0) {
-        Write-Log -Message "Device Manager launch command executed successfully (Exit Code: $result)."
+        Write-Log -Message "Comando de inicio del Administrador de Dispositivos ejecutado con éxito (Código de Salida: $result)."
         Write-Host "Device Manager debería haberse iniciado."
     } else {
-        Write-Log -Message "Device Manager launch command failed or executed with errors (Exit Code: $result)." -Level "ERROR"
+        Write-Log -Message "Comando de inicio del Administrador de Dispositivos falló o se ejecutó con errores (Código de Salida: $result)." -Level "ERROR"
         Write-Warning "El comando para iniciar el Administrador de Dispositivos pudo haber fallado (Código de salida: $result)."
     }
 
-    # Unlike other options, the original script returns to the main menu here, no self-delete.
-    Write-Log -Message "Device Manager action finished. Returning to main menu."
+    # A diferencia de otras opciones, el script original vuelve al menú principal aquí, no se auto-elimina.
+    Write-Log -Message "Acción del Administrador de Dispositivos finalizada. Volviendo al menú principal."
     Read-Host "Presiona Enter para volver al menú principal..."
-    # Show-MainMenu will be called by the main loop after this function returns
+    # MostrarMenuPrincipal será llamado por el bucle principal después de que esta función regrese
 }
-# --- End Administrador de dispositivos Function ---
+# --- Fin Función Administrador de Dispositivos ---
 
-# --- Manage Digital Certificates Menu ---
-function Manage-DigitalCertificatesMenu {
-    Write-Log -Message "Action: Navigated to Digital Certificates Menu."
+# --- Menú Gestionar Certificados Digitales ---
+function MostrarMenuCertificadosDigitales {
+    Write-Log -Message "Acción: Navegado al Menú de Certificados Digitales."
     Clear-Host
     Write-Host "------------------------------------------"
     Write-Host "             CERTIFICADOS DIGITALES"
@@ -677,78 +678,78 @@ function Manage-DigitalCertificatesMenu {
     Write-Host ""
 
     $certChoice = Read-Host "Escoge una opcion"
-    Write-Log -Message "Digital Certificates Menu: User selected option '$certChoice'."
+    Write-Log -Message "Menú Certificados Digitales: Usuario seleccionó la opción '$certChoice'."
 
-    switch ($certChoice.ToLower()) { # Use .ToLower() for case-insensitivity
+    switch ($certChoice.ToLower()) { # Usar .ToLower() para insensibilidad a mayúsculas/minúsculas
         '1' {
-            Write-Log -Message "Attempting to open FNMT Solicitar URL: $config_UrlFnmtSolicitar"
+            Write-Log -Message "Intentando abrir URL FNMT Solicitar: $ConfigUrlFnmtSolicitar"
             try {
-                Start-Process "chrome.exe" -ArgumentList $config_UrlFnmtSolicitar -ErrorAction Stop
-                Write-Log -Message "Successfully launched Chrome with FNMT Solicitar URL."
+                Start-Process "chrome.exe" -ArgumentList $ConfigUrlFnmtSolicitar -ErrorAction Stop
+                Write-Log -Message "Chrome iniciado con éxito con URL FNMT Solicitar."
             }
             catch {
-                Write-Log -Message "Failed to start Chrome for FNMT Solicitar URL. Error: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log -Message "Falló el inicio de Chrome para URL FNMT Solicitar. Error: $($_.Exception.Message)" -Level "ERROR"
                 Write-Warning "No se pudo abrir Chrome para FNMT Solicitar. Verifica que esté instalado."
             }
             Read-Host "Presiona Enter para continuar..."
-            Manage-DigitalCertificatesMenu # Loop back
+            MostrarMenuCertificadosDigitales # Volver al bucle
         }
         '2' {
-            Write-Log -Message "Attempting to open FNMT Renovar URL: $config_UrlFnmtRenovar"
+            Write-Log -Message "Intentando abrir URL FNMT Renovar: $ConfigUrlFnmtRenovar"
             try {
-                Start-Process "chrome.exe" -ArgumentList $config_UrlFnmtRenovar -ErrorAction Stop
-                Write-Log -Message "Successfully launched Chrome with FNMT Renovar URL."
+                Start-Process "chrome.exe" -ArgumentList $ConfigUrlFnmtRenovar -ErrorAction Stop
+                Write-Log -Message "Chrome iniciado con éxito con URL FNMT Renovar."
             }
             catch {
-                Write-Log -Message "Failed to start Chrome for FNMT Renovar URL. Error: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log -Message "Falló el inicio de Chrome para URL FNMT Renovar. Error: $($_.Exception.Message)" -Level "ERROR"
                 Write-Warning "No se pudo abrir Chrome para FNMT Renovar. Verifica que esté instalado."
             }
             Read-Host "Presiona Enter para continuar..."
-            Manage-DigitalCertificatesMenu # Loop back
+            MostrarMenuCertificadosDigitales # Volver al bucle
         }
         '3' {
-            Write-Log -Message "Attempting to open FNMT Descargar URL: $config_UrlFnmtDescargar"
+            Write-Log -Message "Intentando abrir URL FNMT Descargar: $ConfigUrlFnmtDescargar"
             try {
-                Start-Process "chrome.exe" -ArgumentList $config_UrlFnmtDescargar -ErrorAction Stop
-                Write-Log -Message "Successfully launched Chrome with FNMT Descargar URL."
+                Start-Process "chrome.exe" -ArgumentList $ConfigUrlFnmtDescargar -ErrorAction Stop
+                Write-Log -Message "Chrome iniciado con éxito con URL FNMT Descargar."
             }
             catch {
-                Write-Log -Message "Failed to start Chrome for FNMT Descargar URL. Error: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log -Message "Falló el inicio de Chrome para URL FNMT Descargar. Error: $($_.Exception.Message)" -Level "ERROR"
                 Write-Warning "No se pudo abrir Chrome para FNMT Descargar. Verifica que esté instalado."
             }
             Read-Host "Presiona Enter para continuar..."
-            Manage-DigitalCertificatesMenu # Loop back
+            MostrarMenuCertificadosDigitales # Volver al bucle
         }
         '4' {
-            Write-Log -Message "Attempting to open Certificate Manager (certmgr.msc)."
+            Write-Log -Message "Intentando abrir Administrador de Certificados (certmgr.msc)."
             try {
                 Start-Process "certmgr.msc" -ErrorAction Stop
-                Write-Log -Message "Successfully launched certmgr.msc."
+                Write-Log -Message "certmgr.msc iniciado con éxito."
             }
             catch {
-                Write-Log -Message "Failed to start certmgr.msc. Error: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log -Message "Falló el inicio de certmgr.msc. Error: $($_.Exception.Message)" -Level "ERROR"
                 Write-Warning "No se pudo abrir el Administrador de Certificados (certmgr.msc)."
             }
             Read-Host "Presiona Enter para continuar..."
-            Manage-DigitalCertificatesMenu # Loop back
+            MostrarMenuCertificadosDigitales # Volver al bucle
         }
         'm' {
-            Write-Log -Message "Returning to Main Menu from Digital Certificates Menu."
-            return # This will allow Show-MainMenu to redisplay itself
+            Write-Log -Message "Volviendo al Menú Principal desde el Menú de Certificados Digitales."
+            return # Esto permitirá que MostrarMenuPrincipal se vuelva a mostrar
         }
         default {
-            Write-Log -Message "Invalid option '$certChoice' selected in Digital Certificates Menu." -Level "WARN"
+            Write-Log -Message "Opción inválida '$certChoice' seleccionada en Menú Certificados Digitales." -Level "WARN"
             Write-Warning "'$certChoice' opcion no valida, intentalo de nuevo."
             Start-Sleep -Seconds 2
-            Manage-DigitalCertificatesMenu # Loop back
+            MostrarMenuCertificadosDigitales # Volver al bucle
         }
     }
 }
-# --- End Manage Digital Certificates Menu ---
+# --- Fin Menú Gestionar Certificados Digitales ---
 
-# --- Show ISL Always On Info ---
-function Show-IslAlwaysOnInfo {
-    Write-Log -Message "Action: Navigated to ISL Always On Info."
+# --- Mostrar Información ISL Always On ---
+function MostrarInformacionIslAlwaysOn {
+    Write-Log -Message "Acción: Navegado a Información ISL Always On."
     Clear-Host
     Write-Host "------------------------------------------"
     Write-Host "                 ISL ALWAYS ON"
@@ -760,20 +761,20 @@ function Show-IslAlwaysOnInfo {
     Write-Host "Por ahora, la configuración podría necesitar realizarse manualmente."
     Write-Host ""
     Write-Host "- El software de ISL (si está disponible centralmente) podría encontrarse en:"
-    Write-Host "  $config_SoftwareBasePath"
+    Write-Host "  $ConfigSoftwareBasePath"
     Write-Host "- El script intentó una instalación inicial de ISL Light Client desde:"
-    Write-Host "  $config_IslMsiPath"
+    Write-Host "  $ConfigIslMsiPath"
     Write-Host "- Asegúrate que ISL Light Client esté instalado y configurado según sea necesario."
     Write-Host ""
     Read-Host "Presiona Enter para volver al menú principal..."
-    Write-Log -Message "User returning from ISL Always On Info to Main Menu."
-    # Show-MainMenu will be called by the main loop after this function returns
+    Write-Log -Message "Usuario volviendo desde Información ISL Always On al Menú Principal."
+    # MostrarMenuPrincipal será llamado por el bucle principal después de que esta función regrese
 }
-# --- End Show ISL Always On Info ---
+# --- Fin Mostrar Información ISL Always On ---
 
-# --- Show Utilities Menu ---
-function Show-UtilitiesMenu {
-    Write-Log -Message "Action: Navigated to Utilities Menu."
+# --- Mostrar Menú Utilidades ---
+function MostrarMenuUtilidades {
+    Write-Log -Message "Acción: Navegado al Menú de Utilidades."
     Clear-Host
     Write-Host "------------------------------------------"
     Write-Host "                   UTILIDADES"
@@ -786,89 +787,89 @@ function Show-UtilitiesMenu {
     Write-Host ""
 
     $utilChoice = Read-Host "Escoge una opcion"
-    Write-Log -Message "Utilities Menu: User selected option '$utilChoice'."
+    Write-Log -Message "Menú Utilidades: Usuario seleccionó la opción '$utilChoice'."
 
-    switch ($utilChoice.ToLower()) { # Use .ToLower() for case-insensitivity
+    switch ($utilChoice.ToLower()) { # Usar .ToLower() para insensibilidad a mayúsculas/minúsculas
         '1' {
-            Write-Log -Message "Attempting to open Disk Cleanup (cleanmgr.exe)."
+            Write-Log -Message "Intentando abrir Liberador de espacio en disco (cleanmgr.exe)."
             try {
                 Start-Process "cleanmgr.exe" -ErrorAction Stop
-                Write-Log -Message "Successfully launched cleanmgr.exe."
+                Write-Log -Message "cleanmgr.exe iniciado con éxito."
             }
             catch {
-                Write-Log -Message "Failed to start cleanmgr.exe. Error: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log -Message "Falló el inicio de cleanmgr.exe. Error: $($_.Exception.Message)" -Level "ERROR"
                 Write-Warning "No se pudo abrir el Liberador de espacio en disco."
             }
             Read-Host "Presiona Enter para continuar..."
-            Show-UtilitiesMenu # Loop back
+            MostrarMenuUtilidades # Volver al bucle
         }
         '2' {
-            Write-Log -Message "Attempting to open System Information (msinfo32.exe)."
+            Write-Log -Message "Intentando abrir Información del sistema (msinfo32.exe)."
             try {
                 Start-Process "msinfo32.exe" -ErrorAction Stop
-                Write-Log -Message "Successfully launched msinfo32.exe."
+                Write-Log -Message "msinfo32.exe iniciado con éxito."
             }
             catch {
-                Write-Log -Message "Failed to start msinfo32.exe. Error: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log -Message "Falló el inicio de msinfo32.exe. Error: $($_.Exception.Message)" -Level "ERROR"
                 Write-Warning "No se pudo abrir Información del sistema."
             }
             Read-Host "Presiona Enter para continuar..."
-            Show-UtilitiesMenu # Loop back
+            MostrarMenuUtilidades # Volver al bucle
         }
         '3' {
-            Write-Log -Message "Attempting to open Event Viewer (eventvwr.msc)."
+            Write-Log -Message "Intentando abrir Visor de eventos (eventvwr.msc)."
             try {
                 Start-Process "eventvwr.msc" -ErrorAction Stop
-                Write-Log -Message "Successfully launched eventvwr.msc."
+                Write-Log -Message "eventvwr.msc iniciado con éxito."
             }
             catch {
-                Write-Log -Message "Failed to start eventvwr.msc. Error: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log -Message "Falló el inicio de eventvwr.msc. Error: $($_.Exception.Message)" -Level "ERROR"
                 Write-Warning "No se pudo abrir el Visor de eventos."
             }
             Read-Host "Presiona Enter para continuar..."
-            Show-UtilitiesMenu # Loop back
+            MostrarMenuUtilidades # Volver al bucle
         }
         '4' {
-            Write-Log -Message "Attempting to open Task Manager (taskmgr.exe)."
+            Write-Log -Message "Intentando abrir Administrador de Tareas (taskmgr.exe)."
             try {
                 Start-Process "taskmgr.exe" -ErrorAction Stop
-                Write-Log -Message "Successfully launched taskmgr.exe."
+                Write-Log -Message "taskmgr.exe iniciado con éxito."
             }
             catch {
-                Write-Log -Message "Failed to start taskmgr.exe. Error: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log -Message "Falló el inicio de taskmgr.exe. Error: $($_.Exception.Message)" -Level "ERROR"
                 Write-Warning "No se pudo abrir el Administrador de Tareas."
             }
             Read-Host "Presiona Enter para continuar..."
-            Show-UtilitiesMenu # Loop back
+            MostrarMenuUtilidades # Volver al bucle
         }
         'm' {
-            Write-Log -Message "Returning to Main Menu from Utilities Menu."
-            return # This will allow Show-MainMenu to redisplay itself
+            Write-Log -Message "Volviendo al Menú Principal desde el Menú de Utilidades."
+            return # Esto permitirá que MostrarMenuPrincipal se vuelva a mostrar
         }
         default {
-            Write-Log -Message "Invalid option '$utilChoice' selected in Utilities Menu." -Level "WARN"
+            Write-Log -Message "Opción inválida '$utilChoice' seleccionada en Menú Utilidades." -Level "WARN"
             Write-Warning "'$utilChoice' opcion no valida, intentalo de nuevo."
             Start-Sleep -Seconds 2
-            Show-UtilitiesMenu # Loop back
+            MostrarMenuUtilidades # Volver al bucle
         }
     }
 }
-# --- End Show Utilities Menu ---
+# --- Fin Mostrar Menú Utilidades ---
 
-# (Keep existing placeholder Write-Host lines or remove them as functions are added)
-# For testing the Write-Log function during development:
-# $global:LOG_FILE = Join-Path $global:LOG_DIR "test_initial.log" # Temporary for direct testing
-# Write-Log -Message "Test log entry from initial script structure."
-# Write-Log -Message "Another test log entry." -Level "WARN"
+# (Mantener las líneas Write-Host de marcador de posición existentes o eliminarlas a medida que se añaden funciones)
+# Para probar la función Write-Log durante el desarrollo:
+# $GlobalLogFile = Join-Path $GlobalLogDir "test_initial.log" # Temporal para pruebas directas
+# Write-Log -Message "Entrada de log de prueba desde la estructura inicial del script."
+# Write-Log -Message "Otra entrada de log de prueba." -Level "WARN"
 
-# --- Main Menu and System Information ---
-function Show-MainMenu {
-    Clear-Host # Clears the screen, similar to CLS
+# --- Menú Principal e Información del Sistema ---
+function MostrarMenuPrincipal {
+    Clear-Host # Limpia la pantalla, similar a CLS
 
-    # Gather system information
-    $computerName = $global:currentHostname # Already fetched
+    # Recopilar información del sistema
+    $computerName = $GlobalCurrentHostname # Ya obtenido
     $serialNumber = (Get-CimInstance Win32_BIOS).SerialNumber
-    # Attempt to get the primary IPv4 address more reliably
+    # Intentar obtener la dirección IPv4 primaria de forma más fiable
     $primaryInterface = Get-NetAdapter -Physical | Where-Object { $_.Status -eq 'Up' } | Sort-Object -Property {$_.Name -notlike "Ethernet*"} | Select-Object -First 1
     $ipAddress = "N/A"
     if ($primaryInterface) {
@@ -883,60 +884,60 @@ function Show-MainMenu {
     $osCaption = $osInfo.Caption
     $osBuildNumber = $osInfo.BuildNumber
 
-    Write-Log -Message "System Info: User: $($global:userProfileName), AD User: $($global:adUser), Computer: $computerName, SN: $serialNumber, IP: $ipAddress, OS: $osCaption ($osBuildNumber), Script Version: $config_ScriptVersion"
+    Write-Log -Message "Info Sistema: Usuario: $($GlobalUserProfileName), Usuario AD: $($GlobalAdUser), Equipo: $computerName, SN: $serialNumber, IP: $ipAddress, SO: $osCaption ($osBuildNumber), Versión Script: $ConfigScriptVersion"
 
-    # Display system information and menu
+    # Mostrar información del sistema y menú
     Write-Host "------------------------------------------"
     Write-Host "                 CAU"
     Write-Host "------------------------------------------"
     Write-Host ""
-    Write-Host "Usuario: $($global:userProfileName)"
-    Write-Host "Usuario AD utilizado: $($global:adUser)"
+    Write-Host "Usuario: $($GlobalUserProfileName)"
+    Write-Host "Usuario AD utilizado: $($GlobalAdUser)"
     Write-Host "Nombre equipo: $computerName"
-    Write-Host "Numero de serie: $serialNumber"
-    Write-Host "Numero de IP: $ipAddress"
-    Write-Host "Version: $osCaption, con la compilacion $osBuildNumber"
-    Write-Host "Version Script: $config_ScriptVersion"
+    Write-Host "Número de serie: $serialNumber"
+    Write-Host "Número de IP: $ipAddress"
+    Write-Host "Versión: $osCaption, con la compilación $osBuildNumber"
+    Write-Host "Versión Script: $ConfigScriptVersion"
     Write-Host ""
-    Write-Host "1. Bateria pruebas"
-    Write-Host "2. Cambiar password correo"
-    Write-Host "3. Reiniciar cola impresion"
+    Write-Host "1. Batería de pruebas"
+    Write-Host "2. Cambiar contraseña correo"
+    Write-Host "3. Reiniciar cola de impresión"
     Write-Host "4. Administrador de dispositivos (desinstalar drivers)"
     Write-Host "5. Certificado digital"
-    Write-Host "6. ISL Allways on"
+    Write-Host "6. ISL Always On"
     Write-Host "7. Utilidades"
-    Write-Host "X. Salir" # Added an Exit option
+    Write-Host "X. Salir" # Añadida una opción de Salir
     Write-Host ""
 
     $choice = Read-Host "Escoge una opcion"
 
-    Write-Log -Message "Main menu: User selected option '$choice'."
+    Write-Log -Message "Menú principal: Usuario seleccionó la opción '$choice'."
 
     switch ($choice) {
-        "1" { Invoke-BatteryTest }
-        "2" { Invoke-OpenChangePasswordUrl }
-        "3" { Invoke-ResetPrintSpooler }
-        "4" { Show-DeviceManager; Show-MainMenu } # Call Show-DeviceManager then return to Show-MainMenu
-        "5" { Manage-DigitalCertificatesMenu; Show-MainMenu }
-        "6" { Show-IslAlwaysOnInfo; Show-MainMenu }
-        "7" { Show-UtilitiesMenu; Show-MainMenu }
+        "1" { InvocarBateriaPruebas }
+        "2" { AbrirUrlCambiarContraseña } # Updated function call
+        "3" { ReiniciarServicioColaImpresion } # Updated function call
+        "4" { MostrarAdministradorDispositivos; MostrarMenuPrincipal } # Updated function calls
+        "5" { MostrarMenuCertificadosDigitales; MostrarMenuPrincipal } # Updated function calls
+        "6" { MostrarInformacionIslAlwaysOn; MostrarMenuPrincipal } # Updated function calls
+        "7" { MostrarMenuUtilidades; MostrarMenuPrincipal } # Updated function calls
         "X" {
             Write-Host "Saliendo del script."
-            Write-Log -Message "User selected Exit. Attempting to upload log before terminating."
-            Upload-LogFile # Attempt to upload logs on normal exit
-            Write-Log -Message "Script terminating now."
+            Write-Log -Message "Usuario seleccionó Salir. Intentando cargar log antes de terminar."
+            Upload-LogFile # Intentar cargar logs al salir normalmente
+            Write-Log -Message "Script terminando ahora."
             exit 0
         }
         default {
             Write-Host "'$choice' opcion no valida, intentalo de nuevo."
             Start-Sleep -Seconds 2
-            Show-MainMenu
+            MostrarMenuPrincipal # Updated function call
         }
     }
 }
-# --- End Main Menu and System Information ---
+# --- Fin Menú Principal e Información del Sistema ---
 
-# --- Main script execution starts here ---
-# (This call should be at the very end of the script, after all function definitions)
-Show-MainMenu
-# --- End Main script execution ---
+# --- La ejecución principal del script comienza aquí ---
+# (Esta llamada debe estar al final del script, después de todas las definiciones de funciones)
+MostrarMenuPrincipal # Updated function call
+# --- Fin de la ejecución principal del script ---
